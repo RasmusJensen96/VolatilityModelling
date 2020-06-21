@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1592693288386.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "4256181633",
+    "id" : "C98401C4",
+    "lastKnownWriteTime" : 1592697105,
+    "last_content_update" : 1592697105061,
+    "path" : "~/OneDrive - Aarhus universitet/R/VolatilityModelling/R/Class_Utils.R",
+    "project_path" : "R/Class_Utils.R",
+    "properties" : {
+        "cursorPosition" : "25,0",
+        "scrollLine" : "7",
+        "tempName" : "Untitled2"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 6,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

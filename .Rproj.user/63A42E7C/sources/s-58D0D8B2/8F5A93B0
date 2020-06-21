@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1592692485406.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "8F5A93B0",
+    "lastKnownWriteTime" : 1592698988,
+    "last_content_update" : 1592698988711,
+    "path" : "~/OneDrive - Aarhus universitet/R/VolatilityModelling/R/GASGamma_Estimate.R",
+    "project_path" : "R/GASGamma_Estimate.R",
+    "properties" : {
+        "cursorPosition" : "39,25",
+        "scrollLine" : "24",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
