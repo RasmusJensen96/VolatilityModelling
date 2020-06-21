@@ -65,10 +65,8 @@ Estimate_Gamma_GAS <- function(vY,Dates,iMaxIter) {
   lOut[["vPar"]] = vPar
   lOut[["dLLK"]] = dLLK
   lOut[["ABIC"]] = ABIC
-  lOut[["Filtered"]] = FilteredValues
+  lOut[["FilteredMean"]] = FilteredValues
   lOut[["Observations"]] = vY
   lOut[["Dates"]] = Dates
-  lOut[["Model"]] = "GAS"
-  lOut[["Dist"]] = "Gamma"
   return(lOut)
 }
