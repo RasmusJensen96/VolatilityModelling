@@ -5,14 +5,14 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "3532324731",
+    "hash" : "0",
     "id" : "B56768ED",
-    "lastKnownWriteTime" : 1592825859,
-    "last_content_update" : 1592825859,
+    "lastKnownWriteTime" : 1593036465,
+    "last_content_update" : 1593036465918,
     "path" : "~/OneDrive - Aarhus universitet/R/VolatilityModelling/R/GARCHGauss_Estimate.R",
     "project_path" : "R/GARCHGauss_Estimate.R",
     "properties" : {
-        "cursorPosition" : "32,18",
+        "cursorPosition" : "39,26",
         "scrollLine" : "24",
         "tempName" : "Untitled3"
     },

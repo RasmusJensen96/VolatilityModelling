@@ -36,7 +36,8 @@ Estimate_GARCH <- function(vY,Dates) {
               Observations = vY,
               Model = "GARCH",
               Dist = "Gaussian",
-              Dates = Dates)
+              Dates = Dates,
+              Targetfilter = "Conditional volatility")
   class(lOut) <- "FitModel"
   return(lOut)
 }

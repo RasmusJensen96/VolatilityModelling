@@ -4,7 +4,7 @@ plot.FitModel <- function(obj){
   Filtered <- Filtered
   Obs    <- Observations
   Dates  <- Dates
-    p =  ggplot() + geom_line(aes(x = Dates, y = Filtered, colour = "Conditional volatility")) +
+    p =  ggplot() + geom_line(aes(x = Dates, y = Filtered, colour = obj$Targetfilter)) +
       geom_point(aes(x = Dates, y = Obs,colour = "Observed returns"),size = 0.5) +
       scale_color_manual(values = c(rgb(0,0.4470,0.7410),rgb(0.6350, 0.0780,0.1840))) +
       labs(colour=" ",

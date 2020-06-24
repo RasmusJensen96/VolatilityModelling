@@ -66,14 +66,14 @@ server <- function(input, output) {
       VIX = readRDS("./data/datVIX.Rds")
       indiceS <- which(VIX$date >= input$dates & VIX$date <= input$datesFinal)
       VIX = VIX[indiceS,]
-      vYfoo  = (VIX$rets^2)/100
+      vYfoo  = VIX$rets
       datfoo = VIX$date 
       namestr = "VIX"
     } else if (input$Data == "DJI") {
       set.seed(26)
       indiceS <- which(DJI$date >= input$dates & DJI$date <= input$datesFinal)
       DJI = DJI[indiceS,]
-      vYfoo  = (DJI$rets^2)/100
+      vYfoo  = DJI$rets
       datfoo = DJI$date 
       namestr = "Dow Jones Industrial average"
     } else {
@@ -83,7 +83,7 @@ server <- function(input, output) {
       dBeta  = input$dBeta
       iN = input$iN
       foosim = GARCHGauss_Simulate(iN, dOmega, dAlpha, dBeta)
-      vYfoo = foosim$vY^2
+      vYfoo = foosim$vY
       datfoo = 1:iN
       namestr = "Simulated GARCH(1,1)-process"
     }
@@ -91,10 +91,10 @@ server <- function(input, output) {
       fitfoo = Estimate_GARCH(vYfoo, datfoo)
       LLH = fitfoo$dLLK
     } else if (input$Model == "Gamma-GAS") {
-      fitfoo =  Estimate_Gamma_GAS(vYfoo, datfoo, 100)
+      fitfoo =  Estimate_Gamma_GAS(vYfoo^2, datfoo, 100)
       LLH = fitfoo$dLLK
     } else {
-      fitfoo =  Estimate_MEM(vYfoo, datfoo, 100)
+      fitfoo =  Estimate_MEM(vYfoo^2, datfoo, 100)
       LLH = fitfoo$dLLK
     }
     fitfoo$Name = namestr
