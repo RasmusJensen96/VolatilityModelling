@@ -1,0 +1,13 @@
+iT = 500
+dOmega = 0.01
+dBeta = 0.7
+dAlpha = 0.2
+
+yt = GARCHGauss_Simulate(iT, dOmega, dAlpha, dBeta)
+
+rets = yt$vY
+fit = Estimate_GARCH(rets^2, 1:500)
+plot(fit)
+
+ggplot() + geom_line(yt$vSigma2) + geom_line(fit$Filtered) + theme_bw()
+plot.ts(sqrt(yt$vSigma2))

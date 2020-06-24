@@ -1,0 +1,21 @@
+DJI = getSymbols("^DJI", auto.assign = FALSE, from = "2007-12-01", to = "2014-06-01")
+rets = diff(log(DJI$DJI.Adjusted))*100
+rets = as.vector(rets)[-1]
+rets = rets
+fitgarch = Estimate_GARCH(rets, index(DJI$DJI.Adjusted)[-1])
+fitgarch$Name = "DJI"
+
+plot(fitgarch)
+
+
+iT = 500
+dOmega = 0.01
+dAlpha = 0.2
+dBeta = 0.75
+
+yt = GARCHGauss_Simulate(iT, dOmega, dAlpha, dBeta)
+
+plot.ts(sqrt(yt$vSigma2))
+
+fit = Estimate_GARCH(yt$vY, 1:iT)
+plot(fit$Filtered^2)        

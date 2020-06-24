@@ -1,0 +1,112 @@
+library(shiny)
+library(devtools)
+library(ggplot2)
+library(gridExtra)
+library(Rsolnp)
+library(DEoptim)
+library(VolatilityModelling)
+DJI  = readRDS("./data/datDJI.Rds")
+ui <- fluidPage(
+  
+  titlePanel("Volatility modelling"),
+  sidebarLayout(
+    sidebarPanel(
+      radioButtons("Model:",
+                   "Model type",
+                   choices = c("Gaussian-GARCH", "Gamma-GAS", "Gamma-MEM")      
+                    ),
+      radioButtons("Data",
+                   "Ticker choice:",
+                   choices = c("VIX","DJI", "Simulated GARCH")),
+      
+      conditionalPanel(
+                     condition = "input.Data == 'Simulated GARCH'",
+                     sliderInput("dOmega", HTML("&omega;"), min=0.001, max=1, value=0.01),
+                     sliderInput("dAlpha", HTML("&alpha;"), min=0.001, max=1, value=0.1),
+                     sliderInput("dBeta", HTML("&beta;"), min=0.001, max=1, value=0.7),
+                     sliderInput("iN", "Length", min=100, max=1000, value=500)
+                   ),
+      conditionalPanel(
+        condition = "input.Data != 'Simulated GARCH'",
+        sliderInput("dates",
+                    "Starting date:",
+                    min = DJI[1,1],
+                    max = DJI[dim(DJI)[1]-12,1],
+                    value = DJI[floor(dim(DJI)[1]*0.5)+600,1]),
+        sliderInput("datesFinal",
+                    "Final date:",
+                    min = DJI[12,1],
+                    max = DJI[dim(DJI)[1],1],
+                    value = DJI[floor(dim(DJI)[1])*0.5+1550,1])),
+    ),
+    mainPanel(
+      h4("A review of the capabilities of the package 'VolatilityModelling'."),
+      plotOutput("Plot"),
+      h5(textOutput("LLH")),
+      p("If model failed to converge the the LLH is 10.000, try a smaller sample size (for computational easing i hardcoded the maximum number of iterations in the optimization procedures)."),
+      p(withMathJax("$$  \\epsilon_t = \\sigma_t z_{t},\\qquad z_t \\sim \\mathcal{N}\\left(0,1\\right)$$")),
+      p(withMathJax("$$  \\sigma^2_t = \\omega + \\alpha \\epsilon_{t-1}^2+\\beta \\sigma^2_{t-1}$$")),
+      p(em("To install package use the following snippet:")),
+      tags$blockquote("devtools::install_github(\"RasmusJensen96/VolatilityModelling\", force = T)"),
+      p("The GARCH(1,1)-process is on the form:"),
+      uiOutput("tab")
+    )
+  )
+)
+
+server <- function(input, output) {
+  url <- a("GitHub-link to package", href="https://github.com/RasmusJensen96/VolatilityModelling")
+  output$tab <- renderUI({
+    tagList(url)
+  })
+  
+  output$Plot <- renderPlot({
+    if (input$Data == "VIX"){
+      set.seed(26)
+      VIX = readRDS("./data/datVIX.Rds")
+      indiceS <- which(VIX$date >= input$dates & VIX$date <= input$datesFinal)
+      VIX = VIX[indiceS,]
+      vYfoo  = (VIX$rets^2)/100
+      datfoo = VIX$date 
+      namestr = "VIX"
+    } else if (input$Data == "DJI") {
+      set.seed(26)
+      indiceS <- which(DJI$date >= input$dates & DJI$date <= input$datesFinal)
+      DJI = DJI[indiceS,]
+      vYfoo  = (DJI$rets^2)/100
+      datfoo = DJI$date 
+      namestr = "Dow Jones Industrial average"
+    } else {
+      set.seed(26)
+      dOmega = input$dOmega
+      dAlpha = input$dAlpha
+      dBeta  = input$dBeta
+      iN = input$iN
+      foosim = GARCHGauss_Simulate(iN, dOmega, dAlpha, dBeta)
+      vYfoo = foosim$vY^2
+      datfoo = 1:iN
+      namestr = "Simulated GARCH(1,1)-process"
+    }
+    if (input$Model == "Gaussian-GARCH"){
+      fitfoo = Estimate_GARCH(vYfoo, datfoo)
+      LLH = fitfoo$dLLK
+    } else if (input$Model == "Gamma-GAS") {
+      fitfoo =  Estimate_Gamma_GAS(vYfoo, datfoo, 100)
+      LLH = fitfoo$dLLK
+    } else {
+      fitfoo =  Estimate_MEM(vYfoo, datfoo, 100)
+      LLH = fitfoo$dLLK
+    }
+    fitfoo$Name = namestr
+    output$LLH <- renderText(
+      c("Loglikelihood: ", as.character(-LLH))
+    )
+    if (input$Data != "Simulated GARCH"){
+    plot(fitfoo)} else {
+      p1 = ggplot() + geom_line(aes(x=1:iN, y = sqrt(foosim$vSigma2))) + labs(x = "Date", y = "Condtional Volatility", title = "Simulated process") + theme_bw()
+      p2 = plot(fitfoo)
+      grid.arrange(p1, p2, nrow = 2)
+    }
+  })
+}
+shinyApp(ui = ui, server = server)

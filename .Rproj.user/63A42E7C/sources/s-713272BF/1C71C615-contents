@@ -1,8 +1,0 @@
-DJI = getSymbols("^DJI", auto.assign = FALSE, from = "2007-12-01", to = "2010-06-01")
-rets = diff(log(DJI$DJI.Adjusted))*100
-rets = as.vector(rets)[-1]
-rets = rets^2
-fitgarch = Estimate_GARCH(rets, index(DJI$DJI.Adjusted)[-1])
-fitgarch$Name = "DJI"
-
-plot(fitgarch)
