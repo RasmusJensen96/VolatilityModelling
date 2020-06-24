@@ -5,14 +5,14 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "3496041953",
+    "hash" : "903069005",
     "id" : "905B0BA8",
-    "lastKnownWriteTime" : 1593010524,
-    "last_content_update" : 1593010524753,
+    "lastKnownWriteTime" : 1593011498,
+    "last_content_update" : 1593011498507,
     "path" : "~/OneDrive - Aarhus universitet/R/GH/GARCHtest.R",
     "project_path" : null,
     "properties" : {
-        "cursorPosition" : "6,28",
+        "cursorPosition" : "46,50",
         "scrollLine" : "0"
     },
     "read_only" : false,

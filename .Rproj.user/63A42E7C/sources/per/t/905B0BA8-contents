@@ -4,7 +4,7 @@ library(ggplot2)
 library(gridExtra)
 library(Rsolnp)
 library(DEoptim)
-library(VolatilityModelling)
+require(VolatilityModelling)
 DJI  = readRDS("./data/datDJI.Rds")
 ui <- fluidPage(
   
@@ -44,11 +44,11 @@ ui <- fluidPage(
       plotOutput("Plot"),
       h5(textOutput("LLH")),
       p("If model failed to converge the the LLH is 10.000, try a smaller sample size (for computational easing i hardcoded the maximum number of iterations in the optimization procedures)."),
+      p("The GARCH(1,1)-process is on the form:"),
       p(withMathJax("$$  \\epsilon_t = \\sigma_t z_{t},\\qquad z_t \\sim \\mathcal{N}\\left(0,1\\right)$$")),
       p(withMathJax("$$  \\sigma^2_t = \\omega + \\alpha \\epsilon_{t-1}^2+\\beta \\sigma^2_{t-1}$$")),
       p(em("To install package use the following snippet:")),
       tags$blockquote("devtools::install_github(\"RasmusJensen96/VolatilityModelling\", force = T)"),
-      p("The GARCH(1,1)-process is on the form:"),
       uiOutput("tab")
     )
   )
