@@ -1,0 +1,310 @@
+library(shiny)
+library(quantmod)
+require(VolatilityModelling)
+library(shinythemes)
+library(Rsolnp)
+library(ggplot2)
+library(TTR)
+
+ui <- navbarPage("Financial Analysis",
+                 theme = shinytheme("yeti"),
+                 tabPanel("Ticker Choice",
+                          sidebarLayout(
+                            sidebarPanel(
+                              helpText("This first step is intended for you to get a visual interpretation of the selected ticker. The idea is that it is possible to go to yahoo.finance and find exactly the ticker you find fascinating. As a placeholder I selected the Amazon ticker 'AMZN'. Other big companies is Apple with the ticker 'AAPL', Alphabet Inc. (Google) with the ticker 'GOOG', Pfizer 'PFE' or even cryptoes such as bitcoin 'BTC-USD' or Etherium 'ETH-USD'"),
+                              textInput("Ticker", "Yahoo Ticker", value = "AMZN", width = NULL,
+                                        placeholder = "AAPL"),
+                              dateInput("SDate", "Start date", value = as.Date("2016-02-15"), min = as.Date("2015-12-01"), max = Sys.Date()-2,
+                                        format = "yyyy-mm-dd", startview = "month", weekstart = 0,
+                                        language = "en", width = NULL, autoclose = TRUE,
+                                        datesdisabled = NULL, daysofweekdisabled = NULL),
+                              checkboxGroupInput("Checks", label = "Technical tools",
+                                                 choices = list("Bollinger Bands 20-days" = "BB", "Welles Wider DMI 14-days" = "DMI", "Simple MA 10-days" = "MA", "Exp. MA 10-days" = "EMA"),
+                                                 selected = 1),
+                              helpText("I added the opportunity to add certain technical measures (analytical tools) to the plots, these are simple moving average-based Bollinger bands (measure of implied volatility vs. price), exponential moving average, simple moving average and Wilder's directional movement index (a measure of current and expected price trend). The DMI is marked as a three-lined subplot where the blue line tells us the strength of the current trend, while the green and red lines tells of the movement direction (green above red: price is trending upwards and vice-versa)"),
+                              br(),
+                            ),
+                            mainPanel(
+                              h4("Asset chart and technical visualization"),
+                              plotOutput("TickerPlot"),
+                              helpText(textOutput("DMI")),
+                              h4("Summary statistics vs. different sectors and markets"),
+                              tableOutput("sumstats"),
+                              helpText("Above in the table is reported the empirical (over the selected period) estimates of expected return in percetange units, correlation (positive means the selected ticker moves with the market), and expected volatility (standard deviation).")
+                            ))),
+                 tabPanel("Financial Risk",
+                          sidebarLayout(
+                            sidebarPanel(
+                              radioButtons("VolaType", "Type",
+                                           c("GARCH-parametric VaR" = "GARCH",
+                                             "Non-parametric static VaR" = "NPrisk",
+                                             "Non-parametric dynamic VaR" = "NPDrisk")),
+                              conditionalPanel(condition = "input.VolaType == 'NPrisk'",
+                                               sliderInput("binsVaR", "Number of bins", min = 15, max = 200, value = 45)),
+                              conditionalPanel(condition = "input.VolaType == 'NPDrisk'",
+                                               sliderInput("nperiods", "Rolling Window size",
+                                                           min = 10, max = 60, value = 15)),
+                              sliderInput("VaRalpha", "Value-at-Risk Percentage", min = 0.001, max = 0.999, value = 0.05)
+                            ),
+                            mainPanel(
+                              plotOutput("Tplot1"),
+                              br(),
+                              p(withMathJax("In this step you are able to model the risk associated with investment in the selected ticker, either non-parametrically or by a GARCH parametric model. The measure of choice is the so-called Value-at-Risk with the percentage chosen by the user. The threshold value is defaulted at 5%, suggesting what the loss associated with the investment will be in the 5% worst outcome. With a 100$ investment with a value-at-risk at 10% where \\(\\alpha=0.05\\) the investment is thus exposed to a 10% (10$) loss in the 5% worst outcome. The GARCH(1,1)-estimation is done using my own authored package 'VolatilityModelling' available on GitHub (RasmusJensen96) or my personal webpage")),
+                            #  conditionalPanel(condition = "input.VolaType != 'NPrisk'",
+                                               tableOutput("VaRsum"),
+                                               helpText("Table denotes the risk today, i.e. the Value-at-risk at the currrent level of risk, at different hypothetical scenarios (in the unlikely scenario where the 0.1% most unlikely event happens, what is the the loss of a 100$ investment today)")
+                            ))),
+                 tabPanel("Market Risk",
+                          sidebarLayout(
+                            sidebarPanel(
+                              radioButtons("market", h6("Market portfolio"),
+                                           c("NASDAQ Composite" = "^IXIC",
+                                             "Stock & Poor 500" = "^GSPC",
+                                             "Dow Jones Industrial Average" = "^DJI",
+                                             "Russel 2000" = "^RUT",
+                                             "CMC Crypto 200" = "^CMC200")),
+                              conditionalPanel("input.market == '^CMC200'",
+                              helpText("The crypto index is quite badly behaved; as are crypto-assets in general, hence caution is of essence here. (Crypto-markets are in general open 24/7/365 and hence, for the beta regression a lot of observatios are removed to ensure compability with the regular indices. In addition returns in excess of 50% daily in absolute value are truncated (regarded as NA-outliers)")
+                            )
+                            ),
+                            mainPanel(
+                              plotOutput("MarketRiskPlot"),
+                              textOutput("MarketRiskText")
+                            )
+                          )
+
+                 ),
+                 tabPanel("Returns",
+                          #fluidPage(
+                            sidebarLayout(
+                              sidebarPanel(
+                                radioButtons("dailrets", h6("Return choice"),
+                                             c("Percentage" = "Pct",
+                                               "Cumulative" = "Cum",
+                                               "Excess of market" = "Emkt",
+                                               "Cumulative excess of market" = "EmktCum")
+                                ),
+                                radioButtons("spanset", h6("Aggregation period"),
+                                             c("Daily" = "Dail",
+                                               "Monthly" = "Mont",
+                                               "Annual" = "Annu")
+                                )
+                              ),
+                                       mainPanel(plotOutput("DailyRets"))),
+                            )
+                          )
+# Define server logic required to draw a histogram
+server <- function(input, output) {
+  get_data <- reactive({
+    if (input$Ticker == ""){
+      return(NULL)
+    } else{
+      return(getSymbols(input$Ticker, from = input$SDate, auto.assign = F))}
+  })
+
+  get_market_data <- reactive({
+      return(getSymbols(input$market, from = input$SDate, auto.assign = F))
+  })
+
+  get_summary_data <- reactive({
+    symbols = c(input$Ticker,"^NDXT", "CL=F", "GC=F", "^DJI", "^GSPC")
+    for (i in seq_along(symbols)){
+      if (i == 1){
+        syms = getSymbols(symbols[i], auto.assign = F,   from = input$SDate)
+        syms = dailyReturn(Ad(syms))
+      }else{
+        foo = getSymbols(symbols[i], auto.assign = F,  from = input$SDate)
+        syms = merge.xts(syms, dailyReturn(Ad(foo)))
+      }
+      #Sys.sleep(1)
+    }
+    colnames(syms) =  c(input$Ticker,"Tech. index", "Crude Oil", "Gold", "DJI", "S&P500")
+    syms = na.omit(syms)
+    footab = rbind(colMeans(syms)*100, cor(syms)[1,], apply(syms, 2, sd))
+    rownames(footab) = c("Expected Return, %", "Correlation", "Volatility")
+    return(footab)
+  })
+
+  output$TickerPlot <- renderPlot({
+    if (input$Ticker == ""){
+      plot(0,type='n',axes=FALSE,ann=FALSE)
+      text(1, 0.5, "Please choose a Yahoo-ticker", cex = 2)
+    }
+    else{
+      chartSeries(get_data(), name = input$Ticker, theme = "white")
+      if (any(input$Checks == "BB")){
+        plot(addBBands())
+      }
+      if (any(input$Checks == "DMI")){
+        plot(addADX())
+      }
+      if(any(input$Checks == "MA")){
+        plot(addSMA())
+      }
+      if(any(input$Checks == "EMA")){
+        plot(addEMA())
+      }
+    }
+  })
+
+  output$sumstats <- renderTable({
+    print(get_summary_data(), rownames = TRUE)
+  }, rownames = TRUE, width = "auto", bordered = T)
+
+  output$DMI <- renderText({
+      if (any(input$Checks == "DMI")){
+        foo = get_data()
+        foo = ADX(foo)
+        if (tail(foo[,1],1) > tail(foo[,2],1)){
+          foostr1 <- "positive"
+        }else{
+          foostr1 <- "negative"
+        }
+        if (tail(foo[,4]) > (sd(na.omit(foo[,4])) + mean(na.omit(foo[,4])))){
+          foostr2 <- "strong "
+        }else if(tail(foo[,4]) > mean(na.omit(foo[,4]))){
+          foostr2 <- "moderately strong  "
+        }else if(tail(foo[,4]) < mean(na.omit(foo[,4]))-sd(na.omit(foo[,4]))){
+          foostr2 <- "weak "
+        }else{
+          foostr2 <- "moderately weak "
+        }
+        return(paste0("The ticker (", input$Ticker, ") according the the Welles Wider directional movement index has a ", foostr2, foostr1, " price-trend"))
+      }else{
+        return("Tick the Welles Wider DMI option to get a qualitative and quantitative sense of the current price trend")
+      }
+  })
+
+  output$Tplot1 <- renderPlot({
+    foo <- get_data()
+    foo <- dailyReturn(Ad(foo))
+    if (input$VolaType == "GARCH"){
+      fit <- Estimate_GARCH(as.vector(foo), index(foo))
+      fit$Name <- input$Ticker
+      #plot(fit) ## filtered stndard deviation
+      Valatrisk = fit$Filtered * qnorm(input$VaRalpha)
+      ggplot() + geom_line(aes(x = fit$Dates, y = Valatrisk*100)) + theme_bw() + labs(title = "Value-at-Risk: Gaussian-GARCH(1,1)",
+                                                                                      x = "Dates",
+                                                                                      y = "Predicted Value-at-Risk, (percentage of investment)")
+    }else if (input$VolaType == "NPrisk"){
+      ggplot() + geom_histogram(aes(x = 100*foo, y = ..density..), fill = rgb(0,0.35,0),alpha = 0.775, bins = input$binsVaR,  position = "identity") + geom_vline(xintercept = quantile(100*foo, input$VaRalpha)) + geom_density(aes(x = 100*as.vector(foo)),size = 1.25, position  = "identity") + theme_bw() + labs(
+        title = paste0("Daily returns \n", input$Ticker),
+        x = "Percentage Return",
+        y = "Percentage") + annotate("text", quantile(100*foo, input$VaRalpha), Inf, label = paste(c("VaR =    ", as.character(round(quantile(100*foo,input$VaRalpha),2)), "%"), sep = ""), hjust = 2, vjust = 3)
+    }else{
+      sdfoo <- rollapply(foo, input$nperiods, sd)
+      ggplot() + geom_line(aes(x = index(foo), y = 100*(sdfoo*qnorm(input$VaRalpha)))) + theme_bw() + labs(title = "Non-parametric rolling window Value-at-Risk",
+                                                                                      x = "Dates",
+                                                                                      y = "Predicted Value-at-Risk, (percentage of investment)")
+    }
+  })
+
+  output$VaRsum <- renderTable({
+    foo <- get_data()
+    foo <- dailyReturn(Ad(foo))
+    if (input$VolaType == "GARCH"){
+      fit <- Estimate_GARCH(as.vector(foo), index(foo))
+      fit$Name <- input$Ticker
+      sdfoo = fit$Filtered
+    }else if (input$VolaType == "NPDrisk"){
+      sdfoo <- rollapply(foo, input$nperiods, sd)
+    }else{
+      sdfoo <- sd(foo)
+    }
+    if (input$VolaType == "NPrisk"){
+      VaR = as.matrix(t(sdfoo * qnorm(c(0.001, 0.01, 0.05, 0.1, 0.25))*100))
+    } else {
+    VaR = t(tail(as.matrix(sdfoo), n=1) * qnorm(c(0.001, 0.01, 0.05, 0.1, 0.25)))*100
+    }
+    colnames(VaR) = c("0.1%", "1%", "5%", "10%", "25%")
+    rownames(VaR) = "$-return  on 100$ investment"
+    return(VaR)
+  }, rownames = TRUE, width = "auto", bordered = T)
+
+  output$MarketRiskPlot <- renderPlot({
+    foostock = get_data()
+    foostock =  dailyReturn(Ad(foostock))
+    foomarket = get_market_data()
+    foomarket =  dailyReturn(Ad(foomarket))
+    foomarket[abs(foomarket) > 0.5,] = NaN
+    colnames(foomarket) = "market"
+    colnames(foostock) = "stock"
+    foo = merge.xts(foomarket, foostock)
+    foo = na.omit(foo)
+    ggplot() + geom_point(aes(x = foo$'market', y = foo$'stock')) + geom_smooth(aes(x = foo$'market', y = foo$'stock'), method = "lm", se = F) + labs(x = "Market", y = input$Ticker) + theme_bw()
+  })
+
+  output$MarketRiskText <- renderText({
+    foostock = get_data()
+    foostock =  dailyReturn(Ad(foostock))
+    foomarket = get_market_data()
+    foomarket =  dailyReturn(Ad(foomarket))
+    colnames(foomarket) = "market"
+    foomarket[abs(foomarket) > 0.5,] = NaN
+    colnames(foostock) = "stock"
+    foo = merge.xts(foomarket, foostock)
+    foo = na.omit(foo)
+    mbeta = lm(foo$'stock' ~ foo$'market')$coefficients
+
+    if (abs(mbeta[2]) > 1){
+      foostr = paste(c("The market risk (beta) is calculated at ", as.character(round(mbeta[2],3)), "with a value higher than 1. Implying that the stock is more volatile than the market."))}
+    else if(abs(round(mbeta[2],3)) == 1){
+      foostr = paste(c("The market risk (beta) is calculated at ", as.character(round(mbeta[2],3)), "with a value equal to 1. Implpying the the stock volatility is equivalent to that of the market"))}
+    else{
+      foostr =  paste(c("The market risk (beta), is calculated at ", as.character(round(mbeta[2],3)), "with a value lower than 1. Implying that the stock is less volatile than the market."))
+    }
+    if (sign(mbeta[2]) != 1){
+     paste(c(foostr, " Beta however holds a negative value, indicating that this ticker is a good market hedge (moves opposite to the market)."))
+    }else{
+      return(foostr)
+    }
+  })
+
+  output$DailyRets <- renderPlot({
+    if (input$spanset == "Dail"){
+      if (input$dailrets == "Pct"){
+    plot(dailyReturn(Ad(get_data())), main =  paste(c("Daily returns: \n", as.character(input$Ticker))))
+    } else if (input$dailrets == "Cum"){
+      plot(cumprod(1+dailyReturn(Ad(get_data())))-1, main = paste(c("Cumulative daily returns \n", as.character(input$Ticker)), collapse = ""))
+    } else if (input$dailrets == "Emkt"){
+      plot(dailyReturn(Ad(get_market_data()))-dailyReturn(Ad(get_data())), main =  paste(c("Daily excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
+    }else{
+      plot(cumprod(1+dailyReturn(Ad(get_market_data()))-dailyReturn(Ad(get_data())))-1, main =  paste(c("Cumulative daily excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
+    }}
+    else if (input$spanset == "Mont"){
+      if(nrow(monthlyReturn(Ad(get_data()))) < 2){
+        plot(c(0, 1), c(0, 1), ann = F, bty = 'n', type = 'n', xaxt = 'n', yaxt = 'n')
+        text(x = 0.5, y = 0.5, paste("Sample too small to calculate monthly returns \n please increase sample size"),
+             cex = 1.6, col = "black")
+      }else{
+        if (input$dailrets == "Pct"){
+          plot(monthlyReturn(Ad(get_data())), main =  paste(c("Monthly returns: \n", as.character(input$Ticker))))
+        } else if (input$dailrets == "Cum"){
+          plot(cumprod(1+monthlyReturn(Ad(get_data())))-1, main = paste(c("Cumulative monthly returns: \n", as.character(input$Ticker))))
+        } else if (input$dailrets == "Emkt"){
+          plot(monthlyReturn(Ad(get_market_data()))-monthlyReturn(Ad(get_data())), main =  paste(c("Monthly excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
+        }else{
+          plot(cumprod(1+monthlyReturn(Ad(get_market_data()))-monthlyReturn(Ad(get_data())))-1, main =  paste(c("Cumulative montly excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
+        }
+      }
+    }else{
+      if(nrow(yearlyReturn(Ad(get_data()))) < 2){
+        plot(c(0, 1), c(0, 1), ann = F, bty = 'n', type = 'n', xaxt = 'n', yaxt = 'n')
+        text(x = 0.5, y = 0.5, paste("Sample too small to calculate yearly returns \n please increase sample size"),
+             cex = 1.6, col = "black")
+      }else{
+        if (input$dailrets == "Pct"){
+          plot(yearlyReturn(Ad(get_data())), main =  paste(c("Annual returns: \n", as.character(input$Ticker))))
+        } else if (input$dailrets == "Cum"){
+          plot(cumprod(1+yearlyReturn(Ad(get_data())))-1, main = paste(c("Cumulative annual returns: \n", as.character(input$Ticker))))
+        } else if (input$dailrets == "Emkt"){
+          print( as.character(paste0(c("Excess returns over \\", as.character(input$market), ": \n", as.character(input$Ticker)))))
+          plot(yearlyReturn(Ad(get_market_data()))-yearlyReturn(Ad(get_data())), main = paste(c("Annual excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
+        }else{
+          plot(cumprod(1+yearlyReturn(Ad(get_market_data()))-yearlyReturn(Ad(get_data())))-1, main =  paste(c("Cumulative annual excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
+        }}
+    }
+  })
+}
+# Run the application
+shinyApp(ui = ui, server = server)

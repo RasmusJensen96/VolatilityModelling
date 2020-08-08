@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1596924614899.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "1F503183",
+    "lastKnownWriteTime" : 1592736819,
+    "last_content_update" : 1592736819,
+    "path" : "~/OneDrive - Aarhus universitet/R/VolatilityModelling/R/GARCHGauss_LLH.R",
+    "project_path" : "R/GARCHGauss_LLH.R",
+    "properties" : {
+        "cursorPosition" : "45,0",
+        "scrollLine" : "6",
+        "tempName" : "Untitled3"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 8,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

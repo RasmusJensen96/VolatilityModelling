@@ -1,26 +1,26 @@
 {
     "collab_server" : "",
     "contents" : "",
-    "created" : 1593013394386.000,
+    "created" : 1596916628749.000,
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
     "hash" : "0",
-    "id" : "B56768ED",
-    "lastKnownWriteTime" : 1593036465,
-    "last_content_update" : 1593036465918,
+    "id" : "3EB05E3D",
+    "lastKnownWriteTime" : 1596925363,
+    "last_content_update" : 1596925363405,
     "path" : "~/OneDrive - Aarhus universitet/R/VolatilityModelling/R/GARCHGauss_Estimate.R",
     "project_path" : "R/GARCHGauss_Estimate.R",
     "properties" : {
-        "cursorPosition" : "39,26",
-        "scrollLine" : "24",
+        "cursorPosition" : "24,32",
+        "scrollLine" : "13",
         "tempName" : "Untitled3"
     },
     "read_only" : false,
     "read_only_alternatives" : [
     ],
-    "relative_order" : 4,
-    "source_on_save" : false,
+    "relative_order" : 9,
+    "source_on_save" : true,
     "source_window" : "",
     "type" : "r_source"
 }

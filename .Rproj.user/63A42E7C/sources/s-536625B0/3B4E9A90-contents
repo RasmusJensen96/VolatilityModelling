@@ -1,0 +1,36 @@
+getSymbols("^GSPC")
+
+getSymbols("^NDXT")
+chartSeries(NDXT)
+
+
+gg = merge.xts(GSPC$GSPC.Adjusted, NDXT$NDXT.Adjusted)
+
+d = cor(na.omit(gg))
+
+library(gt)
+library(tidyverse)
+g = tibble(t(c(d[1,2], 2, 3, 4)))
+
+
+library(gt)
+gt(data = g)
+
+symbols = c("^NDXT", "CL=F", "GC=F", "^DJI", "^GSPC")
+
+for (i in seq_along(symbols)){
+  if (i == 1){
+    syms = getSymbols(symbols[i], auto.assign = F)
+    syms = syms[,6]
+  }else{
+  foo = getSymbols(symbols[i], auto.assign = F)
+  syms = merge.xts(syms, foo[,6])
+  }
+  Sys.sleep(1)
+}
+
+
+cor(na.omit(syms))
+
+snames = c("Tech. Sector", "Crude Oil", "Gold", "Dow Jones Industrial Average", "SP500")
+colnames(syms) = snames

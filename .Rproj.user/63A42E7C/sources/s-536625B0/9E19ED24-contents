@@ -1,0 +1,11 @@
+yt = dailyReturn(Ad(getSymbols("AAPL", auto.assign = F)))
+
+
+yt = as.vector(yt)
+
+
+#optimizer = optim(par = as.numeric(rep(0.1,15)), fn = function(x){return(GARCHHansenGenT_LLH(yt, x, returnresult = F))}, yt = yt, returnresult = F, method = "BFGS")
+
+foopar = rep(0,15)
+optimizer = optim(par = foopar, fn = GARCHHansenGenT_LLH, vY = yt, method = "CG")
+

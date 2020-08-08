@@ -1,19 +1,20 @@
 {
     "collab_server" : "",
     "contents" : "",
-    "created" : 1593006646680.000,
+    "created" : 1596925470623.000,
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
     "hash" : "0",
-    "id" : "905B0BA8",
-    "lastKnownWriteTime" : 1593037019,
-    "last_content_update" : 1593037019955,
-    "path" : "~/OneDrive - Aarhus universitet/R/GH/GARCHtest.R",
+    "id" : "A778020",
+    "lastKnownWriteTime" : 1596927453,
+    "last_content_update" : 1596927453758,
+    "path" : "~/OneDrive - Aarhus universitet/R/FinancialMoodel/Financial/app.R",
     "project_path" : null,
     "properties" : {
-        "cursorPosition" : "6,27",
-        "scrollLine" : "0"
+        "cursorPosition" : "6,12",
+        "scrollLine" : "0",
+        "tempName" : "Untitled8"
     },
     "read_only" : false,
     "read_only_alternatives" : [

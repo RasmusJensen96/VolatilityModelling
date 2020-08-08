@@ -21,9 +21,9 @@ ui <- fluidPage(
       
       conditionalPanel(
                      condition = "input.Data == 'Simulated GARCH'",
-                     sliderInput("dOmega", HTML("&omega;"), min=0.001, max=1, value=0.01),
-                     sliderInput("dAlpha", HTML("&alpha;"), min=0.001, max=1, value=0.1),
-                     sliderInput("dBeta", HTML("&beta;"), min=0.001, max=1, value=0.7),
+                     sliderInput("dOmega", HTML("&omega;"), min=0.00, max=1, value=0.01),
+                     sliderInput("dAlpha", HTML("&alpha;"), min=0.00, max=1, value=0.1),
+                     sliderInput("dBeta", HTML("&beta;"), min=0.00, max=1, value=0.7),
                      sliderInput("iN", "Length", min=100, max=1000, value=500)
                    ),
       conditionalPanel(
