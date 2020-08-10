@@ -10,7 +10,7 @@ yminus = max(-yt,0)
 vEta = numeric(length(yt))
 vLambda = vEta
 vSigma2 = vEta
-
+s
 vEta[1] = vPar[13]
 vLambda[1] = vPar[14]
 vSigma2[1] = vPar[15]

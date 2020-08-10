@@ -5,10 +5,10 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "0",
+    "hash" : "1731304790",
     "id" : "4BF09AB3",
-    "lastKnownWriteTime" : 1596918956,
-    "last_content_update" : 1596918956060,
+    "lastKnownWriteTime" : 1596976282,
+    "last_content_update" : 1596976282432,
     "path" : "~/OneDrive - Aarhus universitet/R/VolatilityModelling/R/GARCHHansenGenT_LLH.R",
     "project_path" : "R/GARCHHansenGenT_LLH.R",
     "properties" : {
@@ -19,7 +19,7 @@
     "read_only" : false,
     "read_only_alternatives" : [
     ],
-    "relative_order" : 8,
+    "relative_order" : 5,
     "source_on_save" : false,
     "source_window" : "",
     "type" : "r_source"

@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1596977056238.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "2EF3F0DA",
+    "lastKnownWriteTime" : 1597053963,
+    "last_content_update" : 1597053963995,
+    "path" : "~/OneDrive - Aarhus universitet/R/VolatilityModelling/R/GJRGARCH_LLH.R",
+    "project_path" : "R/GJRGARCH_LLH.R",
+    "properties" : {
+        "cursorPosition" : "8,43",
+        "scrollLine" : "0",
+        "tempName" : "Untitled11"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

@@ -35,22 +35,36 @@ ui <- navbarPage("Financial Analysis",
                  tabPanel("Financial Risk",
                           sidebarLayout(
                             sidebarPanel(
+                              helpText(withMathJax("In this step you are able to model the risk associated with investment in the selected ticker, either non-parametrically or by a GARCH parametric model. The measure of choice is the so-called Value-at-Risk with the percentage chosen by the user. The threshold value is defaulted at 5%, suggesting what the loss associated with the investment will be in the 5% worst outcome. With a 100$ investment with a value-at-risk at 10% where \\(\\alpha=0.05\\) the investment is thus exposed to a 10% (10$) loss in the 5% worst outcome. The GARCH(1,1)-estimation is done using my own authored package 'VolatilityModelling' available on GitHub (RasmusJensen96) or my personal webpage")),
                               radioButtons("VolaType", "Type",
                                            c("GARCH-parametric VaR" = "GARCH",
                                              "Non-parametric static VaR" = "NPrisk",
                                              "Non-parametric dynamic VaR" = "NPDrisk")),
                               conditionalPanel(condition = "input.VolaType == 'NPrisk'",
                                                sliderInput("binsVaR", "Number of bins", min = 15, max = 200, value = 45)),
+                              conditionalPanel(condition = "input.VolaType == 'GARCH'",
+                                               radioButtons("GarchDist", "Marginal Distribution",
+                                                            c("Gaussian" = "Gaussian",
+                                                              "Student's-t" = "Student-t",
+                                                              "Assymetric GJR-Gaussian" = "Assymetric")),
+                              conditionalPanel(condition = "input.GarchDist == 'Gaussian'",
+                                               helpText("$$r_t = \\sigma_t \\epsilon_t$$ $$\\sigma^2_t = \\omega + \\alpha r_{t-1}^2 + \\beta \\sigma_{t-1}^2$$ $$\\epsilon_t \\sim \\mathcal{N}(0,1)$$")),
+                              conditionalPanel(condition = "input.GarchDist == 'Student-t'",
+                                               helpText("$$r_t = \\sigma_t \\epsilon_t$$ $$\\sigma^2_t = \\omega + \\alpha r_{t-1}^2 + \\beta \\sigma_{t-1}^2$$ $$\\epsilon_t \\sim \\mathcal{t}(0,1,\\nu)$$")),
+                              conditionalPanel(condition = "input.GarchDist == 'Assymetric'",
+                                               helpText("$$r_t = \\sigma_t \\epsilon_t$$ $$\\sigma^2_t = \\omega + \\alpha r_{t-1}^2 + \\alpha^{-} I r_{t-1}^2 + \\beta \\sigma_{t-1}^2$$ $$\\epsilon_t \\sim \\mathcal{N}(0,1)$$ \\begin{cases} I_t = 0 && \\operatorname{for}  r_t\\geq 0 \\\\ I_t = 1 && \\operatorname{for} r_t < 0 \\end{cases}")),
                               conditionalPanel(condition = "input.VolaType == 'NPDrisk'",
                                                sliderInput("nperiods", "Rolling Window size",
-                                                           min = 10, max = 60, value = 15)),
+                                                           min = 10, max = 60, value = 15))),
                               sliderInput("VaRalpha", "Value-at-Risk Percentage", min = 0.001, max = 0.999, value = 0.05)
                             ),
                             mainPanel(
                               plotOutput("Tplot1"),
                               br(),
-                              p(withMathJax("In this step you are able to model the risk associated with investment in the selected ticker, either non-parametrically or by a GARCH parametric model. The measure of choice is the so-called Value-at-Risk with the percentage chosen by the user. The threshold value is defaulted at 5%, suggesting what the loss associated with the investment will be in the 5% worst outcome. With a 100$ investment with a value-at-risk at 10% where \\(\\alpha=0.05\\) the investment is thus exposed to a 10% (10$) loss in the 5% worst outcome. The GARCH(1,1)-estimation is done using my own authored package 'VolatilityModelling' available on GitHub (RasmusJensen96) or my personal webpage")),
-                            #  conditionalPanel(condition = "input.VolaType != 'NPrisk'",
+                              conditionalPanel(condition = "input.VolaType == 'GARCH' || input.VolaType == 'NPDrisk'",
+                              h6("Value-at-Risk - final observation")),
+                              conditionalPanel(condition = "input.VolaType == 'NPrisk'",
+                                               h6("Value-at-Risk - Assumed Gaussian returns'")),
                                                tableOutput("VaRsum"),
                                                helpText("Table denotes the risk today, i.e. the Value-at-risk at the currrent level of risk, at different hypothetical scenarios (in the unlikely scenario where the 0.1% most unlikely event happens, what is the the loss of a 100$ investment today)")
                             ))),
@@ -84,6 +98,8 @@ ui <- navbarPage("Financial Analysis",
                                                "Excess of market" = "Emkt",
                                                "Cumulative excess of market" = "EmktCum")
                                 ),
+                                conditionalPanel(condition = "input.dailrets == 'Emkt' || input.dailrets == 'EmktCum'",
+                                                 helpText("Change selected market portfolio from the 'Market Risk'-pane")),
                                 radioButtons("spanset", h6("Aggregation period"),
                                              c("Daily" = "Dail",
                                                "Monthly" = "Mont",
@@ -179,31 +195,47 @@ server <- function(input, output) {
     foo <- get_data()
     foo <- dailyReturn(Ad(foo))
     if (input$VolaType == "GARCH"){
-      fit <- Estimate_GARCH(as.vector(foo), index(foo))
+      if (input$GarchDist == "Assymetric"){
+        fit <- Estimate_GJRGARCH(as.vector(foo), index(foo))
+        fit$Name <- input$Ticker
+        #plot(fit) ## filtered stndard deviation
+        Valatrisk = fit$Filtered * qnorm(input$VaRalpha)
+        ggplot() + geom_line(aes(x = fit$Dates, y = Valatrisk*100)) + theme_bw() + labs(title = paste0("Value-at-Risk: Gaussian-GJR-GARCH(1,1)\n",input$Ticker),
+                                                                                        x = "Dates",
+                                                                                        y = "Predicted Value-at-Risk, (percentage of investment)")
+      }else{
+      fit <- Estimate_GARCH(as.vector(foo), index(foo), input$GarchDist)
       fit$Name <- input$Ticker
       #plot(fit) ## filtered stndard deviation
       Valatrisk = fit$Filtered * qnorm(input$VaRalpha)
-      ggplot() + geom_line(aes(x = fit$Dates, y = Valatrisk*100)) + theme_bw() + labs(title = "Value-at-Risk: Gaussian-GARCH(1,1)",
+      ggplot() + geom_line(aes(x = fit$Dates, y = Valatrisk*100)) + theme_bw() + labs(title = paste0("Value-at-Risk:", input$GarchDist," GARCH(1,1)\n",input$Ticker),
                                                                                       x = "Dates",
                                                                                       y = "Predicted Value-at-Risk, (percentage of investment)")
-    }else if (input$VolaType == "NPrisk"){
+        }
+      }
+    else if (input$VolaType == "NPrisk"){
       ggplot() + geom_histogram(aes(x = 100*foo, y = ..density..), fill = rgb(0,0.35,0),alpha = 0.775, bins = input$binsVaR,  position = "identity") + geom_vline(xintercept = quantile(100*foo, input$VaRalpha)) + geom_density(aes(x = 100*as.vector(foo)),size = 1.25, position  = "identity") + theme_bw() + labs(
         title = paste0("Daily returns \n", input$Ticker),
         x = "Percentage Return",
-        y = "Percentage") + annotate("text", quantile(100*foo, input$VaRalpha), Inf, label = paste(c("VaR =    ", as.character(round(quantile(100*foo,input$VaRalpha),2)), "%"), sep = ""), hjust = 2, vjust = 3)
+        y = "Percentage") + annotate("text", quantile(100*foo, input$VaRalpha), Inf, label = paste(c("  Empirical VaR =  ", as.character(round(quantile(100*foo,input$VaRalpha),2)), "%  "), sep = "", collapse = ""), hjust = ifelse(input$VaRalpha > 0.025,  1, 0), vjust = 3)
     }else{
       sdfoo <- rollapply(foo, input$nperiods, sd)
-      ggplot() + geom_line(aes(x = index(foo), y = 100*(sdfoo*qnorm(input$VaRalpha)))) + theme_bw() + labs(title = "Non-parametric rolling window Value-at-Risk",
+      ggplot() + geom_line(aes(x = index(foo), y = 100*(sdfoo*qnorm(input$VaRalpha)))) + theme_bw() + labs(title = "Non-parametric rolling window Value-at-Risk (Gaussian returns)",
                                                                                       x = "Dates",
                                                                                       y = "Predicted Value-at-Risk, (percentage of investment)")
+      }
     }
-  })
+  )
 
   output$VaRsum <- renderTable({
     foo <- get_data()
     foo <- dailyReturn(Ad(foo))
     if (input$VolaType == "GARCH"){
-      fit <- Estimate_GARCH(as.vector(foo), index(foo))
+      if (input$GarchDist == "Assymetric"){
+        fit <- Estimate_GJRGARCH(as.vector(foo), index(foo))
+      }else{
+      fit <- Estimate_GARCH(as.vector(foo), index(foo), input$GarchDist)
+      }
       fit$Name <- input$Ticker
       sdfoo = fit$Filtered
     }else if (input$VolaType == "NPDrisk"){
@@ -214,7 +246,7 @@ server <- function(input, output) {
     if (input$VolaType == "NPrisk"){
       VaR = as.matrix(t(sdfoo * qnorm(c(0.001, 0.01, 0.05, 0.1, 0.25))*100))
     } else {
-    VaR = t(tail(as.matrix(sdfoo), n=1) * qnorm(c(0.001, 0.01, 0.05, 0.1, 0.25)))*100
+    VaR = t(tail(as.vector(sdfoo), n=1) * qnorm(c(0.001, 0.01, 0.05, 0.1, 0.25)))*100
     }
     colnames(VaR) = c("0.1%", "1%", "5%", "10%", "25%")
     rownames(VaR) = "$-return  on 100$ investment"
@@ -240,7 +272,6 @@ server <- function(input, output) {
     foomarket = get_market_data()
     foomarket =  dailyReturn(Ad(foomarket))
     colnames(foomarket) = "market"
-    foomarket[abs(foomarket) > 0.5,] = NaN
     colnames(foostock) = "stock"
     foo = merge.xts(foomarket, foostock)
     foo = na.omit(foo)
@@ -263,13 +294,13 @@ server <- function(input, output) {
   output$DailyRets <- renderPlot({
     if (input$spanset == "Dail"){
       if (input$dailrets == "Pct"){
-    plot(dailyReturn(Ad(get_data())), main =  paste(c("Daily returns: \n", as.character(input$Ticker))))
+    plot(dailyReturn(Ad(get_data())), main =  paste(c("Daily returns \n", as.character(input$Ticker))))
     } else if (input$dailrets == "Cum"){
       plot(cumprod(1+dailyReturn(Ad(get_data())))-1, main = paste(c("Cumulative daily returns \n", as.character(input$Ticker)), collapse = ""))
     } else if (input$dailrets == "Emkt"){
-      plot(dailyReturn(Ad(get_market_data()))-dailyReturn(Ad(get_data())), main =  paste(c("Daily excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
+      plot(dailyReturn(Ad(get_data()))-dailyReturn(Ad(get_market_data())), main =  paste(c("Daily excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
     }else{
-      plot(cumprod(1+dailyReturn(Ad(get_market_data()))-dailyReturn(Ad(get_data())))-1, main =  paste(c("Cumulative daily excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
+      plot(cumprod(1+(dailyReturn(Ad(get_data()))-dailyReturn(Ad(get_market_data()))))-1, main =  paste(c("Cumulative daily excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
     }}
     else if (input$spanset == "Mont"){
       if(nrow(monthlyReturn(Ad(get_data()))) < 2){
@@ -278,13 +309,13 @@ server <- function(input, output) {
              cex = 1.6, col = "black")
       }else{
         if (input$dailrets == "Pct"){
-          plot(monthlyReturn(Ad(get_data())), main =  paste(c("Monthly returns: \n", as.character(input$Ticker))))
+          plot(monthlyReturn(Ad(get_data())), main =  paste(c("Monthly returns \n", as.character(input$Ticker))))
         } else if (input$dailrets == "Cum"){
-          plot(cumprod(1+monthlyReturn(Ad(get_data())))-1, main = paste(c("Cumulative monthly returns: \n", as.character(input$Ticker))))
+          plot(cumprod(1+monthlyReturn(Ad(get_data())))-1, main = paste(c("Cumulative monthly returns \n", as.character(input$Ticker))))
         } else if (input$dailrets == "Emkt"){
-          plot(monthlyReturn(Ad(get_market_data()))-monthlyReturn(Ad(get_data())), main =  paste(c("Monthly excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
+          plot(monthlyReturn(Ad(get_data()))-monthlyReturn(Ad(get_market_data())), main =  paste(c("Monthly excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
         }else{
-          plot(cumprod(1+monthlyReturn(Ad(get_market_data()))-monthlyReturn(Ad(get_data())))-1, main =  paste(c("Cumulative montly excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
+          plot(cumprod(1+(monthlyReturn(Ad(get_data()))-monthlyReturn(Ad(get_market_data()))))-1, main =  paste(c("Cumulative montly excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
         }
       }
     }else{
@@ -294,14 +325,14 @@ server <- function(input, output) {
              cex = 1.6, col = "black")
       }else{
         if (input$dailrets == "Pct"){
-          plot(yearlyReturn(Ad(get_data())), main =  paste(c("Annual returns: \n", as.character(input$Ticker))))
+          plot(yearlyReturn(Ad(get_data())), main =  paste(c("Annual returns \n", as.character(input$Ticker))))
         } else if (input$dailrets == "Cum"){
-          plot(cumprod(1+yearlyReturn(Ad(get_data())))-1, main = paste(c("Cumulative annual returns: \n", as.character(input$Ticker))))
+          plot(cumprod(1+yearlyReturn(Ad(get_data())))-1, main = paste(c("Cumulative annual returns \n", as.character(input$Ticker))))
         } else if (input$dailrets == "Emkt"){
-          print( as.character(paste0(c("Excess returns over \\", as.character(input$market), ": \n", as.character(input$Ticker)))))
-          plot(yearlyReturn(Ad(get_market_data()))-yearlyReturn(Ad(get_data())), main = paste(c("Annual excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
+          print( as.character(paste0(c("Excess returns over \\", as.character(input$market), " \n", as.character(input$Ticker)))))
+          plot(yearlyReturn(Ad(get_data()))-yearlyReturn(Ad(get_market_data())), main = paste(c("Annual excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
         }else{
-          plot(cumprod(1+yearlyReturn(Ad(get_market_data()))-yearlyReturn(Ad(get_data())))-1, main =  paste(c("Cumulative annual excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
+          plot(cumprod(1+yearlyReturn(Ad(get_data()))-yearlyReturn(Ad(get_market_data())))-1, main =  paste(c("Cumulative annual excess returns over market (", as.character(input$market), ") \n", as.character(input$Ticker)), collapse = ""))
         }}
     }
   })

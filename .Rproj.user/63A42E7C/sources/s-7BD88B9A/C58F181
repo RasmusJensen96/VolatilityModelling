@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1596976879913.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "C58F181",
+    "lastKnownWriteTime" : 1597054158,
+    "last_content_update" : 1597054158971,
+    "path" : "~/OneDrive - Aarhus universitet/R/VolatilityModelling/R/GJRGARCH_Estimate.R",
+    "project_path" : "R/GJRGARCH_Estimate.R",
+    "properties" : {
+        "cursorPosition" : "18,68",
+        "scrollLine" : "0",
+        "tempName" : "Untitled11"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

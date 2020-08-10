@@ -1,0 +1,19 @@
+finspot <- function(a, p){
+  impact <- a[p]
+  
+  while(p>1 || p<length(a)){
+    firstmove <- min(a[p-1], a[p+1])
+      if (firstmove >= impact){
+        if (firstmove == impact){
+          return(c(firstmove, p))
+        }else{
+        return(p)}
+      }else{
+        p = firstmove
+      }
+  }
+  return(p)
+}
+
+
+finspot(y, 10)
